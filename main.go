@@ -2,16 +2,14 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"net"
 	"os"
 )
 
 const (
 	SERVER_HOST = "localhost"
-	SERVER_PORT = "9090"
+	SERVER_PORT = "1234"
 	CONN_TYPE   = "tcp"
 )
 
@@ -64,7 +62,7 @@ func initAsServer() {
 
 func initAsClient() {
 	fmt.Println("hola soy cliente")
-	conn, error := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	conn, error := net.Dial(CONN_TYPE, SERVER_HOST+":"+SERVER_PORT)
 
 	// Handles eventual errors
 	if error != nil {
@@ -72,7 +70,7 @@ func initAsClient() {
 		return
 	}
 
-	fmt.Println("Connected to " + CONN_HOST + ":" + CONN_PORT)
+	fmt.Println("Connected to " + SERVER_HOST + ":" + SERVER_PORT)
 
 	go receiveMessages(conn)
 	sendMessages(conn)
@@ -81,40 +79,28 @@ func initAsClient() {
 
 func receiveMessages(conn net.Conn) {
 	for {
+		buffer := make([]byte, 8192)
 
-		var buf bytes.Buffer
-		io.Copy(&buf, conn)
-
-		// message, err := ioutil.ReadAll(conn)
-		// Checks for errors
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	// Exit the loop
-		// 	return
-		// }
-
-		// TODO PROCESS CRYPTOCRAPHIC KEY + MESSAGE
-		if buf.Len() > 0 {
-			fmt.Println("total size:", buf.Len())
-			fmt.Println(">>>", buf.String())
+		length, err := conn.Read(buffer)
+		if err != nil {
+			panic(err)
 		}
-
-		// buf.Reset()
+		fmt.Println(">>>", string(buffer[:length]))
 	}
+
 }
 
 func sendMessages(conn net.Conn) {
 
 	reader := bufio.NewReader(os.Stdin)
-	writer := bufio.NewWriter(conn)
-
 	for {
 		message, _, err := reader.ReadLine()
 		if err != nil {
 			panic(err)
 		}
 
-		_, err = writer.Write([]byte(message))
+		_, err = conn.Write(message)
+
 		if err != nil {
 			panic(err)
 		}
