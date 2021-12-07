@@ -2,20 +2,22 @@ package main
 
 import (
 	"bufio"
-	"encoding/gob"
+	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"os"
 )
 
 const (
-	// CONN_HOST = "localhost"
-	CONN_PORT = "9090"
-	CONN_TYPE = "tcp"
+	SERVER_HOST = "localhost"
+	SERVER_PORT = "9090"
+	CONN_TYPE   = "tcp"
 )
 
 var (
-	CONN_HOST = os.Getenv("SERVER_HOST")
+	CONN_HOST = os.Getenv("CONN_HOST")
+	CONN_PORT = os.Getenv("CONN_PORT")
 )
 
 func main() {
@@ -35,7 +37,7 @@ func main() {
 }
 
 func initAsServer() {
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	l, err := net.Listen(CONN_TYPE, SERVER_HOST+":"+SERVER_PORT)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)
@@ -44,7 +46,7 @@ func initAsServer() {
 	// Close the listener when the application closes.
 	defer l.Close()
 
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	fmt.Println("Listening on " + SERVER_HOST + ":" + SERVER_PORT)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
@@ -55,16 +57,14 @@ func initAsServer() {
 
 		fmt.Println("Connection accepted.")
 
-		encoder := gob.NewEncoder(conn)
-		decoder := gob.NewDecoder(conn)
-		go receiveMessages(decoder)
-		sendMessages(encoder)
+		go receiveMessages(conn)
+		sendMessages(conn)
 	}
 }
 
 func initAsClient() {
 	fmt.Println("hola soy cliente")
-	con, error := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	conn, error := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 
 	// Handles eventual errors
 	if error != nil {
@@ -74,38 +74,47 @@ func initAsClient() {
 
 	fmt.Println("Connected to " + CONN_HOST + ":" + CONN_PORT)
 
-	encoder := gob.NewEncoder(con)
-	decoder := gob.NewDecoder(con)
-	go receiveMessages(decoder)
-	sendMessages(encoder)
+	go receiveMessages(conn)
+	sendMessages(conn)
 
 }
 
-func receiveMessages(decoder *gob.Decoder) {
-	var message string
-
+func receiveMessages(conn net.Conn) {
 	for {
-		err := decoder.Decode(&message)
 
+		var buf bytes.Buffer
+		io.Copy(&buf, conn)
+
+		// message, err := ioutil.ReadAll(conn)
 		// Checks for errors
-		if err != nil {
-			fmt.Println(err)
-			// Exit the loop
-			return
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	// Exit the loop
+		// 	return
+		// }
+
+		// TODO PROCESS CRYPTOCRAPHIC KEY + MESSAGE
+		if buf.Len() > 0 {
+			fmt.Println("total size:", buf.Len())
+			fmt.Println(">>>", buf.String())
 		}
-		fmt.Print(">>>", message)
+
+		// buf.Reset()
 	}
 }
 
-func sendMessages(encoder *gob.Encoder) {
+func sendMessages(conn net.Conn) {
+
 	reader := bufio.NewReader(os.Stdin)
+	writer := bufio.NewWriter(conn)
+
 	for {
-		message, err := reader.ReadString('\n')
+		message, _, err := reader.ReadLine()
 		if err != nil {
 			panic(err)
 		}
 
-		err = encoder.Encode(message)
+		_, err = writer.Write([]byte(message))
 		if err != nil {
 			panic(err)
 		}
