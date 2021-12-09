@@ -167,7 +167,7 @@ func AESEncrypt(plaintext []byte) []byte {
 	return ciphertext
 }
 
-// AESDecrypt decrypt text with key stored at chat initialization - Is the same function to encrypt and decrypt since AES is simetrical
+// AESDecrypt decrypt text with key stored at chat initialization - Is the same function to encrypt and decrypt since AES with CTR is simetrical
 func AESDecrypt(ciphertext []byte) []byte {
 	plaintext := make([]byte, len(ciphertext))
 	block, err := aes.NewCipher(key)
