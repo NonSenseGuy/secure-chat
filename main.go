@@ -69,7 +69,7 @@ func initAsServer() {
 
 func initAsClient() {
 	fmt.Println("hola soy cliente")
-	conn, error := net.Dial(CONN_TYPE, SERVER_HOST+":"+SERVER_PORT)
+	conn, error := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 
 	// Handles eventual errors
 	if error != nil {
@@ -77,7 +77,7 @@ func initAsClient() {
 		return
 	}
 
-	fmt.Println("Connected to " + SERVER_HOST + ":" + SERVER_PORT)
+	fmt.Println("Connected to " + CONN_HOST + ":" + CONN_PORT)
 
 	diffieHellman(conn)
 	go receiveMessages(conn)
