@@ -61,9 +61,10 @@ func initAsServer() {
 
 		fmt.Println("Connection accepted.")
 
-		diffieHellman(conn)
-		go receiveMessages(conn)
-		sendMessages(conn)
+		diffieHellman(conn)      // Generates a key with diffie hellman algorithm and stores it in a variable
+		go receiveMessages(conn) // Creates a thread and receive messages in it
+		sendMessages(conn)       // Uses main thread to send messages to chat
+
 	}
 }
 
@@ -79,42 +80,38 @@ func initAsClient() {
 
 	fmt.Println("Connected to " + CONN_HOST + ":" + CONN_PORT)
 
-	diffieHellman(conn)
-	go receiveMessages(conn)
-	sendMessages(conn)
+	diffieHellman(conn)      // Generates a key with diffie hellman algorithm and stores it in a variable
+	go receiveMessages(conn) // Creates a thread and receive messages in it
+	sendMessages(conn)       // Uses main thread to send messages to chat
 
 }
 
 func receiveMessages(conn net.Conn) {
 	for {
-		buffer := make([]byte, 8192)
+		buffer := make([]byte, 8192) // Initialize buffer
 
-		length, err := conn.Read(buffer)
+		length, err := conn.Read(buffer) // Read message from tcp connection
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("enc>>>", base64.StdEncoding.EncodeToString(buffer[:length]))
-		fmt.Println("dec>>>", string(AESDecrypt(buffer[:length])))
+		fmt.Println("enc>>>", base64.StdEncoding.EncodeToString(buffer[:length])) // Prints encrypted string received from connection
+		fmt.Println("dec>>>", string(AESDecrypt(buffer[:length])))                // Decrypts messsage into readable string
 	}
 
 }
 
+// sendMessages reads string from stdin, encrypts and send it to chat
 func sendMessages(conn net.Conn) {
-
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		message, _, err := reader.ReadLine()
+		message, _, err := reader.ReadLine() // Read line from stdin
 		if err != nil {
 			panic(err)
 		}
 
-		encryptedMessage := AESEncrypt(message)
-		// decryptedMessage := AESDecrypt(encryptedMessage)
-		// fmt.Println("<<<", base64.StdEncoding.EncodeToString(encryptedMessage))
-		// fmt.Println("<<<", string(decryptedMessage))
+		encryptedMessage := AESEncrypt(message) // Encrypts string with diffie hellman key obtained at initialization
 
-		_, err = conn.Write(encryptedMessage)
-
+		_, err = conn.Write(encryptedMessage) // Writes encrypted message to tcp connection
 		if err != nil {
 			panic(err)
 		}
@@ -138,7 +135,7 @@ func diffieHellman(conn net.Conn) {
 	// Receive a slice of bytes from remote, which contains remote public key
 	remoteKey := make([]byte, 1024)
 
-	length, err := conn.Read(remoteKey)
+	length, err := conn.Read(remoteKey) // This will wait until someone writes into the port therefore the chat will only initialize when both users run the chat
 	if err != nil {
 		panic(err)
 	}
@@ -158,8 +155,8 @@ func diffieHellman(conn net.Conn) {
 
 }
 
+// AESEncrypt encrypts text with key stored at chat initialization
 func AESEncrypt(plaintext []byte) []byte {
-
 	ciphertext := make([]byte, len(plaintext))
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -170,6 +167,7 @@ func AESEncrypt(plaintext []byte) []byte {
 	return ciphertext
 }
 
+// AESDecrypt decrypt text with key stored at chat initialization - Is the same function to encrypt and decrypt since AES is simetrical
 func AESDecrypt(ciphertext []byte) []byte {
 	plaintext := make([]byte, len(ciphertext))
 	block, err := aes.NewCipher(key)
